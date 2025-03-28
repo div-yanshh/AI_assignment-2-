@@ -26,7 +26,69 @@ def goal_test(board: dict[Coord, CellState]):
         
     return False
 
-# TODO: Implement the following function
+def find_jump_sequences(start: Coord, board: dict[Coord, CellState]) -> list[list[Direction]]:
+    """
+    Find all possible jump sequences starting from the given coordinate
+    """
+
+    allowed_directions = [
+        Direction.Right,
+        Direction.Left,
+        Direction.Down,
+        Direction.DownRight,
+        Direction.DownLeft
+    ]
+
+    jump_sequences = []
+
+    # Trying all possible directions
+    for direction in allowed_directions:
+        # Calculating the adjacent cell
+        adj_r = start.r + direction.r
+        adj_c = start.c + direction.c
+
+        # Check if the adjacent cell is within bounds.
+        if not (0 <= adj_r < BOARD_N and 0 <= adj_c < BOARD_N):
+            continue
+
+        adjacent = Coord(adj_r, adj_c)
+
+        # Check if the adjacent cell contains a frog.
+        if adjacent not in board or board[adjacent] != CellState.BLUE:
+            continue
+
+        # Calculating final jump destination
+        jump_r = adj_r + direction.r
+        jump_c = adj_c + direction.c
+
+        # Checking if the jump destination is within bounds
+        if not (0 <= jump_r < BOARD_N and 0 <= jump_c < BOARD_N):
+            continue
+
+        jump_dest = Coord(jump_r, jump_c)
+
+        if jump_dest not in board or board[jump_dest] != CellState.LILY_PAD:
+            continue
+
+        # Simulate the possible jump
+        jump_move = MoveAction(start, [direction, direction])
+        new_board = apply_move(board, jump_move)
+
+        # Recursively find all possible jump sequences from the new board
+        subsequent_jump_sequences = find_jump_sequences(jump_dest, new_board)
+        if subsequent_jump_sequences:
+            for seq in subsequent_jump_sequences:
+                jump_sequences.append([direction] + seq)
+        else:
+            jump_sequences.append([direction])
+        
+    return jump_sequences
+
+
+            
+
+
+
 def generate_valid_moves(board: dict[Coord, CellState]):
     """
     Generate all valid moves from the current board state
@@ -68,87 +130,12 @@ def generate_valid_moves(board: dict[Coord, CellState]):
             moves.append(MoveAction(red_coords, [direction]))
 
         # -- Jump moves --
-        # Calculating the adjacent cell
-        adj_r = red_coords.r + direction.r
-        adj_c = red_coords.c + direction.c
-
-        # Check if the adjacent cell is within bounds.
-        if not (0 <= adj_r < BOARD_N and 0 <= adj_c < BOARD_N):
-            continue
-
-        adjacent = Coord(adj_r, adj_c)
-
-        # Check if the adjacent cell contains a frog.
-        if adjacent in board and board[adjacent] is CellState.BLUE:
-            # Calculating final jump destination
-            jump_r = adj_r + direction.r
-            jump_c = adj_c + direction.c
-
-            # Checking if the jump destination is within bounds
-            if not (0 <= jump_r < BOARD_N and 0 <= jump_c < BOARD_N):
-                continue
-
-            jump_dest = Coord(jump_r, jump_c)
-
-            if jump_dest in board and board[jump_dest] == CellState.LILY_PAD:
-                moves.append(MoveAction(red_coords, [direction, direction]))
+        jump_sequences = find_jump_sequences(red_coords, board)
+        for seq in jump_sequences:
+            expanded_seq = [d for d in seq for _ in (0,1)]
+            moves.append(MoveAction(red_coords, expanded_seq))
 
     return moves
-
-# def generate_valid_moves(board: dict[Coord, CellState]):
-#     """
-#     Generate all valid moves from the current board state for the red frog,
-#     ensuring moves that would wrap around are not allowed.
-#     """
-#     moves = []
-#     red_coord = None
-
-#     # Find the red frog's coordinate.
-#     for coord, cell in board.items():
-#         if cell == CellState.RED:
-#             red_coord = coord
-#             break
-
-#     if red_coord is None:
-#         return moves
-
-#     # Allowed directions for Red.
-#     allowed_directions = [
-#         Direction.Right,
-#         Direction.Left,
-#         Direction.Down,
-#         Direction.DownRight,
-#         Direction.DownLeft
-#     ]
-
-#     for direction in allowed_directions:
-#         # Calculate the destination manually for a simple move.
-#         new_r = red_coord.r + direction.r
-#         new_c = red_coord.c + direction.c
-#         # Check if the new coordinates are within bounds.
-#         if not (0 <= new_r < BOARD_N and 0 <= new_c < BOARD_N):
-#             continue  # Skip this direction because it goes off the board.
-#         simple_dest = Coord(new_r, new_c)
-#         if simple_dest in board and board[simple_dest] == CellState.LILY_PAD:
-#             moves.append(MoveAction(red_coord, [direction]))
-
-#         # For jump moves, first compute the adjacent cell.
-#         adj_r = red_coord.r + direction.r
-#         adj_c = red_coord.c + direction.c
-#         if not (0 <= adj_r < BOARD_N and 0 <= adj_c < BOARD_N):
-#             continue  # Adjacent cell is off the board; no jump possible.
-#         adjacent = Coord(adj_r, adj_c)
-#         if adjacent in board and board[adjacent] in (CellState.RED, CellState.BLUE):
-#             # Now compute the jump destination.
-#             jump_r = adj_r + direction.r
-#             jump_c = adj_c + direction.c
-#             if not (0 <= jump_r < BOARD_N and 0 <= jump_c < BOARD_N):
-#                 continue  # Jump destination is off the board.
-#             jump_dest = Coord(jump_r, jump_c)
-#             if jump_dest in board and board[jump_dest] == CellState.LILY_PAD:
-#                 moves.append(MoveAction(red_coord, [direction, direction]))
-    
-#     return moves
 
 def apply_move(board: dict[Coord, CellState], move: MoveAction):
     """
