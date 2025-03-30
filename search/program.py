@@ -4,6 +4,7 @@
 from .core import CellState, Coord, Direction, MoveAction
 from .utils import render_board
 from collections import deque
+import time
 
 # Constants
 BOARD_N = 8
@@ -166,6 +167,10 @@ def bfs_search(board: dict[Coord, CellState]):
     """
     Performs a breadth-first search to find the solution
     """
+
+    nodes_created = 1  # The initial board counts as a created node.
+    nodes_explored = 0
+    start_time = time.time()  # Record the starting time.
     
     queue = deque([(board, [])])
     visited = set()
@@ -173,9 +178,14 @@ def bfs_search(board: dict[Coord, CellState]):
 
     while queue:
         current_board, current_path = queue.popleft()
+        nodes_explored += 1  # We are exploring this node.
 
         # check if current state is the goal state
         if goal_test(current_board):
+            end_time = time.time()
+            print(f"Nodes created: {nodes_created}")
+            print(f"Nodes explored: {nodes_explored}")
+            print(f"Total time taken: {end_time - start_time:.4f} seconds")
             return current_path
         
         # generate all possible moves from the current state
@@ -187,50 +197,80 @@ def bfs_search(board: dict[Coord, CellState]):
             if new_board_tuple not in visited:
                 visited.add(new_board_tuple)
                 queue.append((new_board, current_path + [move]))
+                nodes_created += 1 
     
     # no solution found if all options are exhausted
+    # If no solution is found, print the stats.
+    end_time = time.time()
+    print(f"Nodes created: {nodes_created}")
+    print(f"Nodes explored: {nodes_explored}")
+    print(f"Total time taken: {end_time - start_time:.4f} seconds")
     return None
 
 
-def search(
-    board: dict[Coord, CellState]
-) -> list[MoveAction] | None:
-    """
-    This is the entry point for your submission. You should modify this
-    function to solve the search problem discussed in the Part A specification.
-    See `core.py` for information on the types being used here.
+# def search(
+#     board: dict[Coord, CellState]
+# ) -> list[MoveAction] | None:
+#     """
+#     This is the entry point for your submission. You should modify this
+#     function to solve the search problem discussed in the Part A specification.
+#     See `core.py` for information on the types being used here.
 
-    Parameters:
-        `board`: a dictionary representing the initial board state, mapping
-            coordinates to "player colours". The keys are `Coord` instances,
-            and the values are `CellState` instances which can be one of
-            `CellState.RED`, `CellState.BLUE`, or `CellState.LILY_PAD`.
+#     Parameters:
+#         `board`: a dictionary representing the initial board state, mapping
+#             coordinates to "player colours". The keys are `Coord` instances,
+#             and the values are `CellState` instances which can be one of
+#             `CellState.RED`, `CellState.BLUE`, or `CellState.LILY_PAD`.
     
-    Returns:
-        A list of "move actions" as MoveAction instances, or `None` if no
-        solution is possible.
-    """
+#     Returns:
+#         A list of "move actions" as MoveAction instances, or `None` if no
+#         solution is possible.
+#     """
 
-    # The render_board() function is handy for debugging. It will print out a
-    # board state in a human-readable format. If your terminal supports ANSI
-    # codes, set the `ansi` flag to True to print a colour-coded version!
+#     # The render_board() function is handy for debugging. It will print out a
+#     # board state in a human-readable format. If your terminal supports ANSI
+#     # codes, set the `ansi` flag to True to print a colour-coded version!
+#     print(render_board(board, ansi=True))
+
+#     # Do some impressive AI stuff here to find the solution...
+#     # ...
+#     # ... (your solution goes here!)
+#     # ...
+#     return bfs_search(board)
+
+#     # Here we're returning "hardcoded" actions as an example of the expected
+#     # output format. Of course, you should instead return the result of your
+#     # search algorithm. Remember: if no solution is possible for a given input,
+#     # return `None` instead of a list.
+#     # return [
+#     #     MoveAction(Coord(0, 5), [Direction.Down]),
+#     #     MoveAction(Coord(1, 5), [Direction.DownLeft]),
+#     #     MoveAction(Coord(3, 3), [Direction.Left]),
+#     #     MoveAction(Coord(3, 2), [Direction.Down, Direction.Right]),
+#     #     MoveAction(Coord(5, 4), [Direction.Down]),
+#     #     MoveAction(Coord(6, 4), [Direction.Down]),
+#     # ]
+def search(board: dict[Coord, CellState]) -> list[MoveAction] | None:
+    """
+    Entry point for the search. Finds a sequence of moves from the initial board
+    state that moves the red frog to row 7. It prints the board state after each
+    move in the solution sequence.
+    """
+    print("Initial board:")
     print(render_board(board, ansi=True))
 
-    # Do some impressive AI stuff here to find the solution...
-    # ...
-    # ... (your solution goes here!)
-    # ...
-    return bfs_search(board)
+    # Use BFS to get the solution path (a list of MoveActions).
+    solution_path = bfs_search(board)
+    if solution_path is None:
+        print("No solution found.")
+        return None
 
-    # Here we're returning "hardcoded" actions as an example of the expected
-    # output format. Of course, you should instead return the result of your
-    # search algorithm. Remember: if no solution is possible for a given input,
-    # return `None` instead of a list.
-    # return [
-    #     MoveAction(Coord(0, 5), [Direction.Down]),
-    #     MoveAction(Coord(1, 5), [Direction.DownLeft]),
-    #     MoveAction(Coord(3, 3), [Direction.Left]),
-    #     MoveAction(Coord(3, 2), [Direction.Down, Direction.Right]),
-    #     MoveAction(Coord(5, 4), [Direction.Down]),
-    #     MoveAction(Coord(6, 4), [Direction.Down]),
-    # ]
+    # Apply each move from the solution path and print the board after each move.
+    current_board = board
+    for i, move in enumerate(solution_path, start=1):
+        current_board = apply_move(current_board, move)
+        print(f"\nBoard after move {i} ({move}):")
+        print(render_board(current_board, ansi=True))
+
+    return solution_path
+
