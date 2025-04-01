@@ -27,11 +27,16 @@ def goal_test(board: dict[Coord, CellState]):
         
     return False
 
-def find_jump_sequences(start: Coord, board: dict[Coord, CellState]) -> list[list[Direction]]:
+def find_jump_sequences(start: Coord, board: dict[Coord, CellState], visited=None) -> list[list[Direction]]:
     """
-    Find all possible jump sequences starting from the given coordinate
+    Find all possible jump sequences starting from the given coordinate.
+    The visited set is used to prevent cycles in the jump sequence.
     """
-
+    if visited is None:
+        visited = set()
+    # Add the current starting position to the visited set for this jump chain.
+    visited.add(start)
+    
     allowed_directions = [
         Direction.Right,
         Direction.Left,
@@ -39,44 +44,37 @@ def find_jump_sequences(start: Coord, board: dict[Coord, CellState]) -> list[lis
         Direction.DownRight,
         Direction.DownLeft
     ]
-
     jump_sequences = []
-
-    # Trying all possible directions
+    
     for direction in allowed_directions:
-        # Calculating the adjacent cell
+        # Calculate the adjacent cell.
         adj_r = start.r + direction.r
         adj_c = start.c + direction.c
-
-        # Check if the adjacent cell is within bounds.
         if not (0 <= adj_r < BOARD_N and 0 <= adj_c < BOARD_N):
             continue
-
         adjacent = Coord(adj_r, adj_c)
-
-        # Check if the adjacent cell contains a frog.
         if adjacent not in board or board[adjacent] != CellState.BLUE:
             continue
-
-        # Calculating final jump destination
+        
+        # Calculate the jump destination.
         jump_r = adj_r + direction.r
         jump_c = adj_c + direction.c
-
-        # Checking if the jump destination is within bounds
         if not (0 <= jump_r < BOARD_N and 0 <= jump_c < BOARD_N):
             continue
-
         jump_dest = Coord(jump_r, jump_c)
-
         if jump_dest not in board or board[jump_dest] != CellState.LILY_PAD:
             continue
-
-        # Simulate the possible jump
+        
+        # If we've already jumped to this destination in the current chain, skip it to prevent cycles.
+        if jump_dest in visited:
+            continue
+        
+        # Simulate the possible jump.
         jump_move = MoveAction(start, [direction, direction])
         new_board = apply_move(board, jump_move)
-
-        # Recursively find all possible jump sequences from the new board
-        subsequent_jump_sequences = find_jump_sequences(jump_dest, new_board)
+        
+        # Recursively find further jump sequences from the new landing cell.
+        subsequent_jump_sequences = find_jump_sequences(jump_dest, new_board, visited.copy())
         if subsequent_jump_sequences:
             for seq in subsequent_jump_sequences:
                 jump_sequences.append([direction] + seq)
@@ -84,6 +82,7 @@ def find_jump_sequences(start: Coord, board: dict[Coord, CellState]) -> list[lis
             jump_sequences.append([direction])
         
     return jump_sequences
+
 
 def generate_valid_moves(board: dict[Coord, CellState]):
     """
@@ -134,27 +133,44 @@ def generate_valid_moves(board: dict[Coord, CellState]):
 
 def apply_move(board: dict[Coord, CellState], move: MoveAction):
     """
-    Apply the move to the board
+    Apply the move to the board.
+    For a simple move, the destination is source + direction.
+    For a jump move (which we store as a single direction), we check the adjacent cell.
+    If the adjacent cell is occupied by a blue frog, then we compute the destination as source + 2*(direction).
+    For multi-jump moves (more than one direction in the list), we apply each jump accordingly.
     """
     new_board = board.copy()
-
     source = move.coord
-
     dest = source
-    for direction in move.directions:
-        dest = dest + direction
-
-    # remove the lilypad at the source
+    
+    # Determine if this is a simple move or a jump move.
+    # We'll assume a simple move is represented as a single arrow that leads to an unoccupied lily pad immediately.
+    # If the adjacent cell in that direction contains a blue frog, then it is a jump move.
+    if len(move.directions) == 1:
+        d = move.directions[0]
+        # Check if the immediate adjacent cell is a lily pad.
+        if board.get(source + d) == CellState.LILY_PAD:
+            # Simple move.
+            dest = source + d
+        else:
+            # Otherwise, assume it's a jump move.
+            dest = source + (d * 2)
+    else:
+        # For multi-jump moves, apply each jump.
+        for d in move.directions:
+            dest = dest + (d * 2)
+    
+    # Remove the red frog from the source.
     if source in new_board and new_board[source] == CellState.RED:
         del new_board[source]
-
-    # remove the lily pad at the destination because the frog will jump there
+    
+    # Remove the lily pad at the destination (it gets "consumed" when the frog lands).
     if dest in new_board and new_board[dest] == CellState.LILY_PAD:
         del new_board[dest]
-
-    # place the frog at the destination
+    
+    # Place the red frog at the destination.
     new_board[dest] = CellState.RED
-
+    
     return new_board
 
 def bfs_search(board: dict[Coord, CellState]):
