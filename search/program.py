@@ -27,15 +27,19 @@ def goal_test(board: dict[Coord, CellState]):
         
     return False
 
-def find_jump_sequences(start: Coord, board: dict[Coord, CellState], visited=None) -> list[list[Direction]]:
+def find_jump_sequences(start: Coord, board: dict[Coord, CellState], path=None) -> list[list[Direction]]:
     """
     Find all possible jump sequences starting from the given coordinate.
-    The visited set is used to prevent cycles in the jump sequence.
+    The path list tracks the positions visited in the current jump chain to prevent cycles.
     """
-    if visited is None:
-        visited = set()
-    # Add the current starting position to the visited set for this jump chain.
-    visited.add(start)
+    if path is None:
+        path = [start]
+    else:
+        # If the current start is already in the path, we've looped.
+        if start in path:
+            return []
+        # Create a new path list to avoid side effects.
+        path = path + [start]
     
     allowed_directions = [
         Direction.Right,
@@ -65,23 +69,25 @@ def find_jump_sequences(start: Coord, board: dict[Coord, CellState], visited=Non
         if jump_dest not in board or board[jump_dest] != CellState.LILY_PAD:
             continue
         
-        # If we've already jumped to this destination in the current chain, skip it to prevent cycles.
-        if jump_dest in visited:
+        # Prevent cycles: if jump_dest is already in the current jump path, skip it.
+        if jump_dest in path:
             continue
         
         # Simulate the possible jump.
         jump_move = MoveAction(start, [direction, direction])
         new_board = apply_move(board, jump_move)
         
-        # Recursively find further jump sequences from the new landing cell.
-        subsequent_jump_sequences = find_jump_sequences(jump_dest, new_board, visited.copy())
-        if subsequent_jump_sequences:
-            for seq in subsequent_jump_sequences:
+        # Recursively find further jump sequences from the new landing cell,
+        # passing the updated path.
+        subsequent_sequences = find_jump_sequences(jump_dest, new_board, path)
+        if subsequent_sequences:
+            for seq in subsequent_sequences:
                 jump_sequences.append([direction] + seq)
         else:
             jump_sequences.append([direction])
         
     return jump_sequences
+
 
 
 def generate_valid_moves(board: dict[Coord, CellState]):
