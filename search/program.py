@@ -85,11 +85,6 @@ def find_jump_sequences(start: Coord, board: dict[Coord, CellState]) -> list[lis
         
     return jump_sequences
 
-
-            
-
-
-
 def generate_valid_moves(board: dict[Coord, CellState]):
     """
     Generate all valid moves from the current board state
@@ -133,8 +128,7 @@ def generate_valid_moves(board: dict[Coord, CellState]):
         # -- Jump moves --
         jump_sequences = find_jump_sequences(red_coords, board)
         for seq in jump_sequences:
-            expanded_seq = [d for d in seq for _ in (0,1)]
-            moves.append(MoveAction(red_coords, expanded_seq))
+            moves.append(MoveAction(red_coords, seq))   
 
     return moves
 
@@ -241,7 +235,7 @@ def bfs_search(board: dict[Coord, CellState]):
 #     # Here we're returning "hardcoded" actions as an example of the expected
 #     # output format. Of course, you should instead return the result of your
 #     # search algorithm. Remember: if no solution is possible for a given input,
-#     # return `None` inx stead of a list.
+#     # return `None` instead of a list.
 #     # return [
 #     #     MoveAction(Coord(0, 5), [Direction.Down]),
 #     #     MoveAction(Coord(1, 5), [Direction.DownLeft]),
@@ -478,9 +472,7 @@ def search(board: dict[Coord, CellState]) -> list[MoveAction] | None:
 #     end_time = time.time()
     
 #     if solution_path is None:
-#         print(f"Solution not found in {end_time - start_time:.4f} seconds.")
-    
-
+#         print("No solution found.")
 #     else:
 #         print(f"Solution found in {end_time - start_time:.4f} seconds.")
     
