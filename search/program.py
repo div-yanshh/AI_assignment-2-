@@ -29,17 +29,14 @@ def goal_test(board: dict[Coord, CellState]):
 
 def find_jump_sequences(start: Coord, board: dict[Coord, CellState], path=None) -> list[list[Direction]]:
     """
-    Find all possible jump sequences starting from the given coordinate.
-    The path list tracks the positions visited in the current jump chain to prevent cycles.
+    Recursively finds all possible jump sequences starting from 'start' on 'board'.
+    The 'path' list tracks the positions visited in the current jump chain to prevent cycles.
     """
+    # If no path is provided, start with an empty list.
     if path is None:
-        path = [start]
-    else:
-        # If the current start is already in the path, we've looped.
-        if start in path:
-            return []
-        # Create a new path list to avoid side effects.
-        path = path + [start]
+        path = []
+    # Append the current start to the path (creating a new list each time).
+    new_path = path + [start]
     
     allowed_directions = [
         Direction.Right,
@@ -51,41 +48,43 @@ def find_jump_sequences(start: Coord, board: dict[Coord, CellState], path=None) 
     jump_sequences = []
     
     for direction in allowed_directions:
-        # Calculate the adjacent cell.
+        # Calculate the adjacent cell (the cell to jump over).
         adj_r = start.r + direction.r
         adj_c = start.c + direction.c
         if not (0 <= adj_r < BOARD_N and 0 <= adj_c < BOARD_N):
             continue
         adjacent = Coord(adj_r, adj_c)
+        # Ensure the adjacent cell contains a blue frog.
         if adjacent not in board or board[adjacent] != CellState.BLUE:
             continue
         
-        # Calculate the jump destination.
+        # Calculate the jump destination (landing cell).
         jump_r = adj_r + direction.r
         jump_c = adj_c + direction.c
         if not (0 <= jump_r < BOARD_N and 0 <= jump_c < BOARD_N):
             continue
         jump_dest = Coord(jump_r, jump_c)
+        # Ensure the landing cell is an unoccupied lily pad.
         if jump_dest not in board or board[jump_dest] != CellState.LILY_PAD:
             continue
         
-        # Prevent cycles: if jump_dest is already in the current jump path, skip it.
-        if jump_dest in path:
+        # Prevent cycles: if jump_dest is already in the current jump path, skip this direction.
+        if jump_dest in new_path:
             continue
         
-        # Simulate the possible jump.
+        # Simulate the jump: create a MoveAction for a jump (internally represented as [direction, direction]).
         jump_move = MoveAction(start, [direction, direction])
         new_board = apply_move(board, jump_move)
         
-        # Recursively find further jump sequences from the new landing cell,
-        # passing the updated path.
-        subsequent_sequences = find_jump_sequences(jump_dest, new_board, path)
+        # Recursively find further jump sequences from jump_dest, passing the updated path.
+        subsequent_sequences = find_jump_sequences(jump_dest, new_board, new_path)
         if subsequent_sequences:
             for seq in subsequent_sequences:
                 jump_sequences.append([direction] + seq)
         else:
+            # If no further jumps are available, the sequence is just the current direction.
             jump_sequences.append([direction])
-        
+    
     return jump_sequences
 
 
@@ -223,49 +222,6 @@ def bfs_search(board: dict[Coord, CellState]):
     print(f"Total time taken: {end_time - start_time:.4f} seconds")
     return None
 
-
-# def search(
-#     board: dict[Coord, CellState]
-# ) -> list[MoveAction] | None:
-#     """
-#     This is the entry point for your submission. You should modify this
-#     function to solve the search problem discussed in the Part A specification.
-#     See `core.py` for information on the types being used here.
-
-#     Parameters:
-#         `board`: a dictionary representing the initial board state, mapping
-#             coordinates to "player colours". The keys are `Coord` instances,
-#             and the values are `CellState` instances which can be one of
-#             `CellState.RED`, `CellState.BLUE`, or `CellState.LILY_PAD`.
-    
-#     Returns:
-#         A list of "move actions" as MoveAction instances, or `None` if no
-#         solution is possible.
-#     """
-
-#     # The render_board() function is handy for debugging. It will print out a
-#     # board state in a human-readable format. If your terminal supports ANSI
-#     # codes, set the `ansi` flag to True to print a colour-coded version!
-#     print(render_board(board, ansi=True))
-
-#     # Do some impressive AI stuff here to find the solution...
-#     # ...
-#     # ... (your solution goes here!)
-#     # ...
-#     return bfs_search(board)
-
-#     # Here we're returning "hardcoded" actions as an example of the expected
-#     # output format. Of course, you should instead return the result of your
-#     # search algorithm. Remember: if no solution is possible for a given input,
-#     # return `None` instead of a list.
-#     # return [
-#     #     MoveAction(Coord(0, 5), [Direction.Down]),
-#     #     MoveAction(Coord(1, 5), [Direction.DownLeft]),
-#     #     MoveAction(Coord(3, 3), [Direction.Left]),
-#     #     MoveAction(Coord(3, 2), [Direction.Down, Direction.Right]),
-#     #     MoveAction(Coord(5, 4), [Direction.Down]),
-#     #     MoveAction(Coord(6, 4), [Direction.Down]),
-#     # ]
 def search(board: dict[Coord, CellState]) -> list[MoveAction] | None:
     """
     Entry point for the search. Finds a sequence of moves from the initial board
