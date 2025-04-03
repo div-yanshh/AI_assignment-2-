@@ -39,11 +39,11 @@ def goal_test(board: dict[Coord, CellState]):
 #     new_path = path + [start]
     
 #     allowed_directions = [
+#         Direction.Right,
+#         Direction.Left,
 #         Direction.Down,
 #         Direction.DownRight,
-#         Direction.DownLeft,
-#         Direction.Right,
-#         Direction.Left
+#         Direction.DownLeft
 #     ]
 #     jump_sequences = []
     
@@ -86,7 +86,6 @@ def goal_test(board: dict[Coord, CellState]):
 #             jump_sequences.append([direction])
     
 #     return jump_sequences
-
 def find_jump_sequences(start: Coord, board: dict[Coord, CellState], path=None, first_call=True) -> list[list[Direction]]:
     """
     Recursively finds all possible jump sequences starting from 'start' on 'board'.
@@ -155,10 +154,12 @@ def find_jump_sequences(start: Coord, board: dict[Coord, CellState], path=None, 
             jump_sequences.append([direction])
     
     # Filter for minimal sequences: only keep those with the fewest hops.
-    # if jump_sequences:
-    #     min_hops = min(len(seq) for seq in jump_sequences)
-    #     jump_sequences = [seq for seq in jump_sequences if len(seq) == min_hops]
+    if jump_sequences:
+        min_hops = min(len(seq) for seq in jump_sequences)
+        jump_sequences = [seq for seq in jump_sequences if len(seq) == min_hops]
     return jump_sequences
+
+
 
 
 def generate_valid_moves(board: dict[Coord, CellState]):
@@ -179,11 +180,11 @@ def generate_valid_moves(board: dict[Coord, CellState]):
     
     # Allowed directions for Red
     allowed_directions = [
-        Direction.Down,
-        Direction.DownRight,
-        Direction.DownLeft,
         Direction.Right,
         Direction.Left,
+        Direction.Down,
+        Direction.DownRight,
+        Direction.DownLeft
     ]
 
     for direction in allowed_directions:
@@ -203,6 +204,7 @@ def generate_valid_moves(board: dict[Coord, CellState]):
 
         # -- Jump moves --
         jump_sequences = find_jump_sequences(red_coords, board)
+        
         for seq in jump_sequences:
             moves.append(MoveAction(red_coords, seq))   
 
@@ -274,15 +276,10 @@ def bfs_search(board: dict[Coord, CellState]):
             print(f"Nodes explored: {nodes_explored}")
             print(f"Total time taken: {end_time - start_time:.4f} seconds")
             return current_path
-
+        
         # generate all possible moves from the current state
         for move in generate_valid_moves(current_board):
             new_board = apply_move(current_board, move)
-
-            if goal_test(new_board):
-                return current_path + [move]
-
-
             new_board_tuple = board_to_tuple(new_board)
 
             # check if the new state has been visited
